@@ -1,19 +1,61 @@
-exports.isAuthenticated = (req, res, next) => {
+// Middleware for authentication checks
+
+// Check if user is authenticated
+const isAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ message: 'Authentication required' });
+  
+  // Check if request is API call or browser request
+  if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  } else {
+    return res.redirect('/login');
+  }
 };
 
-// Check if user is an admin
-exports.isAdmin = (req, res, next) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: 'Authentication required' });
+// Check if user is admin
+const isAdmin = (req, res, next) => {
+  if (req.isAuthenticated() && req.user.role === 'admin') {
+    return next();
   }
   
-  if (!req.user.role || req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
+  if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
+    return res.status(403).json({ message: 'Not authorized' });
+  } else {
+    return res.redirect('/unauthorized');
+  }
+};
+
+// Check if user is a nurse
+const isNurse = (req, res, next) => {
+  if (req.isAuthenticated() && req.user.role === 'nurse') {
+    return next();
   }
   
-  next();
+  if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
+    return res.status(403).json({ message: 'Nurse access required' });
+  } else {
+    return res.redirect('/unauthorized');
+  }
+};
+
+// Check if user is either nurse or admin
+const isNurseOrAdmin = (req, res, next) => {
+  if (req.isAuthenticated() && (req.user.role === 'nurse' || req.user.role === 'admin')) {
+    return next();
+  }
+  
+  if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
+    return res.status(403).json({ message: 'Nurse or admin access required' });
+  } else {
+    return res.redirect('/unauthorized');
+  }
+};
+
+module.exports = {
+  isAuthenticated,
+  isAdmin,
+  isNurse,
+  isNurseOrAdmin
 }; 

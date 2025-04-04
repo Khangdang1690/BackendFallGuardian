@@ -34,6 +34,12 @@ SESSION_SECRET=your-strong-session-secret-key-here
 
 # Redirect URL after logout (optional)
 LOGOUT_REDIRECT_URL=/
+
+# SMS/Notifications configuration (Twilio - optional)
+TWILIO_ENABLED=false
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=your_twilio_phone
 ```
 
 3. Start the development server:
@@ -56,6 +62,30 @@ This application uses Google OAuth 2.0 for authentication. To set it up:
 7. Add "http://localhost:3000/api/auth/google/callback" to the Authorized redirect URIs
 8. Copy the Client ID and Client Secret to your .env file
 
+## Architecture Overview
+
+This backend forms part of a two-repository architecture:
+
+1. **Frontend (React)** 
+   - Implements fall detection using MediaPipe and WebRTC
+   - Handles camera access directly in the browser
+   - Provides patient and nurse interfaces
+
+2. **Backend (Node.js/Express)**
+   - Manages user accounts (patients, nurses, admins)
+   - Processes fall notifications from the frontend
+   - Provides API for the AI therapy service
+   - Handles SMS notifications to nurses
+
+### Fall Detection Architecture
+
+The fall detection system operates as follows:
+1. Patient opens the web app in their browser
+2. Frontend uses WebRTC to access the camera
+3. MediaPipe processes video frames to detect falls
+4. When a fall is detected, frontend calls the backend API
+5. Backend notifies assigned nurses via SMS
+
 ## API Documentation
 
 API documentation is available through Swagger UI at `/api-docs` when the server is running.
@@ -68,8 +98,10 @@ src/
   ├── docs/           # API documentation
   ├── middleware/     # Express middleware
   ├── models/         # MongoDB models
+  ├── python_services/# Python services for AI therapy
   ├── routes/         # API routes
   ├── services/       # Business logic services
+  ├── utils/          # Utility functions
   ├── app.js          # Express application setup
   └── server.js       # Main application entry point
 ```

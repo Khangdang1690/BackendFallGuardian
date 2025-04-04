@@ -17,7 +17,7 @@ class AuthService extends BaseService {
       googleId: profile.id,
       name: profile.displayName,
       email: profile.emails[0].value,
-      role: 'user' // Default role for new users
+      role: 'patient' // Default role for new users
     });
   }
 
