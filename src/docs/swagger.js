@@ -200,6 +200,185 @@ Protected routes are marked with a lock icon 🔒`,
           role: 'nurse',
           assignedPatients: ['60d5ec92fcf032e333a9cb13']
         }
+      },
+      FallAlertResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            description: 'Indicates operation success',
+          },
+          message: {
+            type: 'string',
+            description: 'Status message',
+          },
+          patient: {
+            $ref: '#/components/schemas/User',
+          },
+          nurse: {
+            $ref: '#/components/schemas/User',
+          }
+        },
+        example: {
+          success: true,
+          message: 'Fall alert sent to nurse',
+          patient: {
+            _id: '60d5ec92fcf032e333a9cb13',
+            name: 'John Doe',
+            email: 'john@example.com',
+            role: 'patient',
+          },
+          nurse: {
+            _id: '60d5ec92fcf032e333a9cb14',
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            role: 'nurse',
+            phoneNumber: '+12125551234'
+          }
+        }
+      },
+      TextGenerationRequest: {
+        type: 'object',
+        required: ['prompt'],
+        properties: {
+          prompt: {
+            type: 'string',
+            description: 'The text prompt to send to the AI model',
+          },
+          temperature: {
+            type: 'number',
+            description: 'Controls randomness in generation (0-1)',
+            minimum: 0,
+            maximum: 1,
+            default: 0.6
+          },
+          model: {
+            type: 'string',
+            description: 'The AI model to use',
+            default: 'meta-llama/Meta-Llama-3.1-70B-Instruct'
+          },
+          maxTokens: {
+            type: 'integer',
+            description: 'Maximum number of tokens to generate',
+            default: 500
+          },
+          context: {
+            type: 'string',
+            description: 'Additional context about the patient or situation',
+          }
+        },
+        example: {
+          prompt: 'What are some safety tips to prevent falls in elderly patients?',
+          temperature: 0.7,
+          context: 'Patient is 78 years old with mobility issues'
+        }
+      },
+      TextGenerationResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            description: 'Indicates operation success',
+          },
+          prompt: {
+            type: 'string',
+            description: 'The original prompt that was sent',
+          },
+          response: {
+            type: 'string',
+            description: 'The generated text response from the AI model',
+          }
+        },
+        example: {
+          success: true,
+          prompt: 'Write a short poem about healthcare.',
+          response: 'Healing hands with gentle touch,\nGuiding souls through pain so much.\nIn corridors where hope remains,\nCompassion flows through weary veins.'
+        }
+      },
+      ImageGenerationRequest: {
+        type: 'object',
+        required: ['prompt'],
+        properties: {
+          prompt: {
+            type: 'string',
+            description: 'Text description of the image to generate',
+          },
+          model: {
+            type: 'string',
+            description: 'The AI model to use for image generation',
+            default: 'stability-ai/sdxl'
+          },
+          responseFormat: {
+            type: 'string',
+            description: 'Format of the response',
+            enum: ['url', 'b64_json'],
+            default: 'url'
+          },
+          responseExtension: {
+            type: 'string',
+            description: 'Image format extension',
+            enum: ['webp', 'png', 'jpeg'],
+            default: 'webp'
+          },
+          width: {
+            type: 'integer',
+            description: 'Width of the generated image',
+            default: 512
+          },
+          height: {
+            type: 'integer',
+            description: 'Height of the generated image',
+            default: 512
+          },
+          numInferenceSteps: {
+            type: 'integer',
+            description: 'Number of denoising steps (affects quality)',
+            default: 30
+          },
+          seed: {
+            type: 'integer',
+            description: 'Random seed for reproducible results (-1 for random)',
+            default: -1
+          },
+          negativePrompt: {
+            type: 'string',
+            description: 'Elements to exclude from the image',
+            default: ''
+          }
+        },
+        example: {
+          prompt: 'Senior patient using a walker in a well-lit room',
+          width: 512,
+          height: 512,
+          negativePrompt: 'Blurry, distorted, dark, grayscale'
+        }
+      },
+      ImageGenerationResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            description: 'Indicates operation success',
+          },
+          prompt: {
+            type: 'string',
+            description: 'The prompt used for image generation',
+          },
+          url: {
+            type: 'string',
+            description: 'URL to the generated image',
+          },
+          model: {
+            type: 'string',
+            description: 'The model used for generation',
+          }
+        },
+        example: {
+          success: true,
+          prompt: 'Medical visualization of senior patient using a walker in a well-lit room',
+          url: 'https://example.com/generated-image.webp',
+          model: 'stability-ai/sdxl'
+        }
       }
     },
   },
@@ -220,6 +399,14 @@ Protected routes are marked with a lock icon 🔒`,
     {
       name: 'Nurses',
       description: 'Nurse-patient assignment management',
+    },
+    {
+      name: 'Patients',
+      description: 'Patient operations and fall detection',
+    },
+    {
+      name: 'AI',
+      description: 'AI text generation services',
     }
   ],
   paths: {
@@ -844,6 +1031,192 @@ Protected routes are marked with a lock icon 🔒`,
           },
           404: {
             description: 'Nurse not found',
+          },
+        },
+      },
+    },
+    // Patient Routes
+    '/patient/me/nurse': {
+      get: {
+        summary: 'Get the nurse assigned to the current patient',
+        tags: ['Patients'],
+        security: [{ cookieAuth: [] }],
+        description: 'Retrieves information about the nurse assigned to the currently logged-in patient.',
+        responses: {
+          200: {
+            description: 'Nurse details',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/User',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'User is not a patient',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires patient role)',
+          },
+          404: {
+            description: 'No nurse assigned to this patient',
+          },
+        },
+      },
+    },
+    '/patient/me/fall': {
+      post: {
+        summary: 'Send a fall alert to the assigned nurse',
+        tags: ['Patients'],
+        security: [{ cookieAuth: [] }],
+        description: 'Sends an SMS alert to the nurse assigned to the current patient about a fall event.',
+        responses: {
+          200: {
+            description: 'Fall alert sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/FallAlertResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'User is not a patient or nurse has no phone number',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires patient role)',
+          },
+          404: {
+            description: 'No nurse assigned to this patient',
+          },
+        },
+      },
+    },
+    '/patient/{id}/fall': {
+      post: {
+        summary: 'Send a fall alert for any patient (admin only)',
+        tags: ['Patients'],
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Patient ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Fall alert sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/FallAlertResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'User is not a patient or nurse has no phone number',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires admin role)',
+          },
+          404: {
+            description: 'Patient not found or no nurse assigned',
+          },
+        },
+      },
+    },
+    // AI Routes
+    '/ai/generate': {
+      post: {
+        summary: 'Generate text using AI',
+        tags: ['AI'],
+        security: [{ cookieAuth: [] }],
+        description: 'Sends a prompt to the AI model and returns the generated text response.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/TextGenerationRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Text generation successful',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/TextGenerationResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request - Missing prompt',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          500: {
+            description: 'Error processing AI request',
+          },
+        },
+      },
+    },
+    '/ai/image': {
+      post: {
+        summary: 'Generate an image using AI',
+        tags: ['AI'],
+        security: [{ cookieAuth: [] }],
+        description: 'Generates an image based on the provided text prompt using AI models.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ImageGenerationRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Image generation successful',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ImageGenerationResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request - Missing prompt',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          500: {
+            description: 'Error generating image',
           },
         },
       },
