@@ -5,10 +5,6 @@ on:
     branches: [main]
   workflow_dispatch: # Allow manual triggering
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -60,32 +56,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to GitHub Container Registry
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,format=short
-            type=ref,event=branch
-            latest
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:buildcache,mode=max
 
       # Set up Azure login - uncomment when ready for Azure deployment
       # - name: Azure login
@@ -98,10 +82,10 @@ jobs:
       #   with:
       #     resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
       #     dns-name-label: fallguardian-backend
-      #     image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-      #     registry-login-server: ${{ env.REGISTRY }}
-      #     registry-username: ${{ github.actor }}
-      #     registry-password: ${{ secrets.GITHUB_TOKEN }}
+      #     image: ${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:latest
+      #     registry-login-server: docker.io
+      #     registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
       #     name: fallguardian-backend
       #     location: 'eastus'
       #     ports: 3000

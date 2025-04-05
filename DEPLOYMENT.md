@@ -8,7 +8,11 @@ This project uses GitHub Actions for CI/CD to automatically build and deploy the
 
 1. **GitHub Repository**: Push your code to a GitHub repository.
 
-2. **GitHub Secrets Setup**: Set up the following secrets in your GitHub repository (Settings > Secrets and variables > Actions > New repository secret):
+2. **Docker Hub Credentials**: Set up the following secrets in your GitHub repository (Settings > Secrets and variables > Actions > New repository secret):
+   - `DOCKERHUB_USERNAME`: Your Docker Hub username
+   - `DOCKERHUB_TOKEN`: Your Docker Hub access token (create one at https://hub.docker.com/settings/security)
+
+3. **Environment Variables**: Set up the following secrets in your GitHub repository:
    - `MONGODB_URI`: Your MongoDB connection string
    - `SESSION_SECRET`: Secret for session encryption
    - `GOOGLE_CLIENT_ID`: Google OAuth client ID
@@ -20,7 +24,7 @@ This project uses GitHub Actions for CI/CD to automatically build and deploy the
    - `NEBIUS_API_KEY`: Nebius API key for AI features
    - `DEEPGRAM_API_KEY`: Deepgram API key
 
-3. **Azure Resources** (for Azure deployment):
+4. **Azure Resources** (for Azure deployment):
    - Create a Resource Group in Azure
    - Set up `AZURE_CREDENTIALS` secret in GitHub (follow instructions below)
    - Set `AZURE_RESOURCE_GROUP` secret with your resource group name
@@ -65,10 +69,11 @@ If you need to deploy manually:
    docker run -p 3000:3000 --env-file .env fallguardian-backend
    ```
 
-4. Push to a registry:
+4. Push to Docker Hub:
    ```
-   docker tag fallguardian-backend ghcr.io/yourusername/fallguardian-backend
-   docker push ghcr.io/yourusername/fallguardian-backend
+   docker login -u your-dockerhub-username
+   docker tag fallguardian-backend your-dockerhub-username/fallguardian-backend:latest
+   docker push your-dockerhub-username/fallguardian-backend:latest
    ```
 
 ## Enabling Azure Deployment
