@@ -33,8 +33,7 @@ const userSchema = new mongoose.Schema({
   nurseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null,
-    required: function() { return this.role === 'patient'; }
+    default: null
   },
   // For nurses only
   assignedPatients: [{

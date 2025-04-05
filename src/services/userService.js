@@ -31,6 +31,18 @@ class UserService extends BaseService {
       if (userData.email && !isValidEmail(userData.email)) {
         throw new Error('Invalid email format');
       }
+      
+      // If nurseId is being set, validate that it belongs to a nurse
+      if (userData.nurseId) {
+        const nurse = await this.findById(userData.nurseId);
+        if (!nurse) {
+          throw new Error('Nurse not found');
+        }
+        if (nurse.role !== 'nurse') {
+          throw new Error('The specified nurseId does not belong to a user with nurse role');
+        }
+      }
+      
       return this.update(id, userData);
     } catch (error) {
       return this.handleError(error);

@@ -379,6 +379,181 @@ Protected routes are marked with a lock icon 🔒`,
           url: 'https://example.com/generated-image.webp',
           model: 'stability-ai/sdxl'
         }
+      },
+      FormMessage: {
+        type: 'object',
+        properties: {
+          _id: {
+            type: 'string',
+            description: 'The message ID'
+          },
+          sender: {
+            oneOf: [
+              { type: 'string', description: 'User ID of the sender' },
+              { $ref: '#/components/schemas/User' }
+            ],
+            description: 'The user who sent the message'
+          },
+          body: {
+            type: 'string',
+            description: 'The content of the message'
+          },
+          attachment: {
+            type: 'string',
+            description: 'URL to an attachment (if any)'
+          },
+          createdAt: {
+            type: 'string',
+            format: 'date-time',
+            description: 'When the message was sent'
+          }
+        }
+      },
+      Form: {
+        type: 'object',
+        properties: {
+          _id: {
+            type: 'string',
+            description: 'The form ID'
+          },
+          title: {
+            type: 'string',
+            description: 'Title of the form/request'
+          },
+          patient: {
+            oneOf: [
+              { type: 'string', description: 'Patient User ID' },
+              { $ref: '#/components/schemas/User' }
+            ],
+            description: 'The patient who created the form'
+          },
+          nurse: {
+            oneOf: [
+              { type: 'string', description: 'Nurse User ID' },
+              { $ref: '#/components/schemas/User' }
+            ],
+            description: 'The nurse assigned to the form'
+          },
+          status: {
+            type: 'string',
+            enum: ['pending', 'in-progress', 'resolved', 'cancelled'],
+            description: 'Current status of the form'
+          },
+          resolved: {
+            type: 'boolean',
+            description: 'Whether the form has been resolved'
+          },
+          resolvedBy: {
+            oneOf: [
+              { type: 'string', description: 'User ID who resolved the form' },
+              { $ref: '#/components/schemas/User' }
+            ],
+            description: 'The user who resolved the form'
+          },
+          resolvedAt: {
+            type: 'string',
+            format: 'date-time',
+            description: 'When the form was resolved'
+          },
+          messages: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/FormMessage'
+            },
+            description: 'Messages in the conversation thread'
+          },
+          createdAt: {
+            type: 'string',
+            format: 'date-time',
+            description: 'When the form was created'
+          },
+          updatedAt: {
+            type: 'string',
+            format: 'date-time',
+            description: 'When the form was last updated'
+          }
+        }
+      },
+      CreateFormRequest: {
+        type: 'object',
+        required: ['title', 'nurse', 'body'],
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the form/request'
+          },
+          nurse: {
+            type: 'string',
+            description: 'ID of the nurse to assign the form to'
+          },
+          body: {
+            type: 'string',
+            description: 'Body content of the initial message'
+          },
+          attachment: {
+            type: 'string',
+            description: 'URL to an attachment (if any)'
+          }
+        },
+        example: {
+          title: 'Question about medication',
+          nurse: '60d5ec92fcf032e333a9cb14',
+          body: 'I have a question about my new prescription. When should I take it?'
+        }
+      },
+      AddMessageRequest: {
+        type: 'object',
+        required: ['body'],
+        properties: {
+          body: {
+            type: 'string',
+            description: 'Content of the message'
+          },
+          attachment: {
+            type: 'string',
+            description: 'URL to an attachment (if any)'
+          }
+        },
+        example: {
+          body: 'Thank you for your response, I understand now.'
+        }
+      },
+      FormStatsResponse: {
+        type: 'object',
+        properties: {
+          total: {
+            type: 'integer',
+            description: 'Total number of forms'
+          },
+          resolved: {
+            type: 'integer',
+            description: 'Number of resolved forms'
+          },
+          unresolved: {
+            type: 'integer',
+            description: 'Number of unresolved forms'
+          },
+          pending: {
+            type: 'integer',
+            description: 'Number of pending forms'
+          },
+          inProgress: {
+            type: 'integer',
+            description: 'Number of in-progress forms'
+          },
+          cancelled: {
+            type: 'integer',
+            description: 'Number of cancelled forms'
+          }
+        },
+        example: {
+          total: 10,
+          resolved: 5,
+          unresolved: 5,
+          pending: 2,
+          inProgress: 3,
+          cancelled: 0
+        }
       }
     },
   },
@@ -407,6 +582,10 @@ Protected routes are marked with a lock icon 🔒`,
     {
       name: 'AI',
       description: 'AI text generation services',
+    },
+    {
+      name: 'Forms',
+      description: 'Form management',
     }
   ],
   paths: {
@@ -1217,6 +1396,275 @@ Protected routes are marked with a lock icon 🔒`,
           },
           500: {
             description: 'Error generating image',
+          },
+        },
+      },
+    },
+    // Form Routes
+    '/forms': {
+      post: {
+        summary: 'Create a new form/request',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        description: 'Creates a new form with the authenticated user as the patient and an initial message.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/CreateFormRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Form created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Form',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request - Missing required fields',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires patient role)',
+          },
+          404: {
+            description: 'Nurse not found',
+          },
+        },
+      },
+    },
+    '/forms/me': {
+      get: {
+        summary: 'Get all forms for the current user',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        description: 'Retrieves all forms associated with the authenticated user based on their role (patient or nurse).',
+        parameters: [
+          {
+            in: 'query',
+            name: 'status',
+            schema: {
+              type: 'string',
+              enum: ['resolved', 'unresolved', 'pending', 'in-progress', 'cancelled'],
+            },
+            required: false,
+            description: 'Filter forms by status',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of forms',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Form',
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Unauthorized role',
+          },
+        },
+      },
+    },
+    '/forms/me/unresolved': {
+      get: {
+        summary: 'Get unresolved forms for the current user',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        description: 'Retrieves all unresolved forms for the authenticated user (patient or nurse).',
+        responses: {
+          200: {
+            description: 'List of unresolved forms',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Form',
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Invalid role for this operation',
+          },
+        },
+      },
+    },
+    '/forms/stats': {
+      get: {
+        summary: 'Get form statistics',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        description: 'Retrieves statistics about forms for the authenticated user.',
+        responses: {
+          200: {
+            description: 'Form statistics',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/FormStatsResponse',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Unauthorized role',
+          },
+        },
+      },
+    },
+    '/forms/{id}': {
+      get: {
+        summary: 'Get a specific form by ID',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Form ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Form details',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Form',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized to view this form',
+          },
+          404: {
+            description: 'Form not found',
+          },
+        },
+      },
+    },
+    '/forms/{id}/messages': {
+      post: {
+        summary: 'Add a message to a form',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Form ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AddMessageRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Message added successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Form',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Bad request - Message body is required',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized to add messages to this form',
+          },
+          404: {
+            description: 'Form not found',
+          },
+        },
+      },
+    },
+    '/forms/{id}/resolve': {
+      post: {
+        summary: 'Mark a form as resolved',
+        tags: ['Forms'],
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Form ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Form resolved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Form',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized to resolve this form',
+          },
+          404: {
+            description: 'Form not found',
           },
         },
       },
