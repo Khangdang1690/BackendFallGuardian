@@ -15,6 +15,11 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  age: {
+    type: Number,
+    min: [0, 'Age cannot be negative'],
+    max: [120, 'Age cannot exceed 120']
+  },
   role: {
     type: String,
     enum: ['patient', 'nurse', 'admin'],

@@ -1,0 +1,122 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "fallguardian-backend",
+      "metadata": {
+        "description": "Container Group name."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for resources."
+      }
+    },
+    "imageName": {
+      "type": "string",
+      "metadata": {
+        "description": "Container image name."
+      }
+    },
+    "registryUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Registry username."
+      }
+    },
+    "registryPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Registry password."
+      }
+    },
+    "registryServer": {
+      "type": "string",
+      "metadata": {
+        "description": "Registry server."
+      }
+    },
+    "environmentVariables": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        }
+      ]
+    },
+    "secureEnvironmentVariables": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2021-03-01",
+      "name": "[parameters('containerGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "containers": [
+          {
+            "name": "fallguardian-backend",
+            "properties": {
+              "image": "[parameters('imageName')]",
+              "ports": [
+                {
+                  "port": 3000,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": "[parameters('environmentVariables')]",
+              "secureEnvironmentVariables": "[parameters('secureEnvironmentVariables')]",
+              "resources": {
+                "requests": {
+                  "cpu": 1,
+                  "memoryInGB": 1.5
+                }
+              }
+            }
+          }
+        ],
+        "imageRegistryCredentials": [
+          {
+            "server": "[parameters('registryServer')]",
+            "username": "[parameters('registryUsername')]",
+            "password": "[parameters('registryPassword')]"
+          }
+        ],
+        "osType": "Linux",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "port": 3000,
+              "protocol": "TCP"
+            }
+          ],
+          "dnsNameLabel": "[parameters('containerGroupName')]"
+        },
+        "restartPolicy": "Always"
+      }
+    }
+  ],
+  "outputs": {
+    "containerIPv4Address": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.ip]"
+    },
+    "containerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn]"
+    }
+  }
+} 

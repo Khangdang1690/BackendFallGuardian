@@ -62,6 +62,12 @@ Protected routes are marked with a lock icon 🔒`,
             type: 'string',
             description: 'Google OAuth ID',
           },
+          age: {
+            type: 'integer',
+            description: 'User age',
+            minimum: 0,
+            maximum: 120
+          },
           role: {
             type: 'string',
             enum: ['patient', 'nurse', 'admin'],
@@ -99,6 +105,7 @@ Protected routes are marked with a lock icon 🔒`,
           name: 'John Doe',
           email: 'john@example.com',
           role: 'patient',
+          age: 45,
           phoneNumber: '+12125551234',
           fallStatus: false,
           createdAt: '2021-06-25T12:00:00.000Z',
@@ -718,13 +725,19 @@ Protected routes are marked with a lock icon 🔒`,
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['name', 'email'],
+                required: ['name', 'email', 'age', 'role'],
                 properties: {
                   name: {
                     type: 'string',
                   },
                   email: {
                     type: 'string',
+                  },
+                  age: {
+                    type: 'integer',
+                    description: 'User age (0-120)',
+                    minimum: 0,
+                    maximum: 120
                   },
                   role: {
                     type: 'string',
@@ -820,6 +833,12 @@ Protected routes are marked with a lock icon 🔒`,
                   },
                   email: {
                     type: 'string',
+                  },
+                  age: {
+                    type: 'integer',
+                    description: 'User age (0-120)',
+                    minimum: 0,
+                    maximum: 120
                   },
                   role: {
                     type: 'string',
@@ -925,9 +944,21 @@ Protected routes are marked with a lock icon 🔒`,
                   name: {
                     type: 'string',
                   },
+                  age: {
+                    type: 'integer',
+                    description: 'User age (0-120)',
+                    minimum: 0,
+                    maximum: 120
+                  },
+                  phoneNumber: {
+                    type: 'string',
+                    description: 'Phone number in E.164 format'
+                  }
                 },
                 example: {
-                  name: 'Updated Name'
+                  name: 'Updated Name',
+                  age: 35,
+                  phoneNumber: '+12125551234'
                 }
               },
             },
