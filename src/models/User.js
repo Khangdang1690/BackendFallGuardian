@@ -30,18 +30,11 @@ const userSchema = new mongoose.Schema({
     }
   },
   // For patients only
-  fallStatus: {
-    type: Boolean,
-    default: false,
-    required: function() { return this.role === 'patient'; }
-  },
-  lastFallTimestamp: {
-    type: Date,
+  nurseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     default: null,
-    required: function() { 
-      // Only required for patients with an active fall
-      return this.role === 'patient' && this.fallStatus === true; 
-    }
+    required: function() { return this.role === 'patient'; }
   },
   // For nurses only
   assignedPatients: [{
@@ -56,12 +49,6 @@ const userSchema = new mongoose.Schema({
 }, {
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-// Virtual property to check if patient has fallen
-userSchema.virtual('falled').get(function() {
-  if (this.role !== 'patient') return null;
-  return this.fallStatus === true;
 });
 
 module.exports = mongoose.model('User', userSchema); 

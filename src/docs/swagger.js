@@ -164,52 +164,43 @@ Protected routes are marked with a lock icon 🔒`,
           message: 'Logout successful'
         },
       },
-      FallEventResponse: {
+      PatientAssignmentResponse: {
         type: 'object',
         properties: {
-          success: {
-            type: 'boolean',
-            description: 'Indicates operation success',
-          },
-          message: {
+          _id: {
             type: 'string',
-            description: 'Status message',
+            description: 'Nurse ID',
           },
-          patient: {
-            $ref: '#/components/schemas/User',
+          name: {
+            type: 'string',
+            description: 'Nurse name',
           },
+          email: {
+            type: 'string',
+            description: 'Nurse email',
+          },
+          role: {
+            type: 'string',
+            enum: ['nurse'],
+            description: 'User role',
+          },
+          assignedPatients: {
+            type: 'array',
+            description: 'List of patient IDs assigned to this nurse',
+            items: {
+              type: 'string',
+              description: 'Patient ID'
+            }
+          }
         },
         example: {
-          success: true,
-          message: 'Fall event recorded',
-          patient: {
-            _id: '60d5ec92fcf032e333a9cb13',
-            name: 'John Doe',
-            role: 'patient',
-            fallStatus: true,
-            lastFallTimestamp: '2023-04-03T12:34:56.789Z'
-          }
+          _id: '60d5ec92fcf032e333a9cb14',
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'nurse',
+          assignedPatients: ['60d5ec92fcf032e333a9cb13']
         }
-      },
-      ActiveFallsResponse: {
-        type: 'object',
-        properties: {
-          success: {
-            type: 'boolean',
-            description: 'Indicates operation success',
-          },
-          count: {
-            type: 'integer',
-            description: 'Number of patients with active falls',
-          },
-          patients: {
-            type: 'array',
-            items: {
-              $ref: '#/components/schemas/User',
-            },
-          },
-        },
-      },
+      }
     },
   },
   security: [
@@ -227,9 +218,9 @@ Protected routes are marked with a lock icon 🔒`,
       description: 'User management',
     },
     {
-      name: 'Fall Detection',
-      description: 'Patient fall monitoring and notifications',
-    },
+      name: 'Nurses',
+      description: 'Nurse-patient assignment management',
+    }
   ],
   paths: {
     // Auth Routes
@@ -593,63 +584,43 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
-    // Fall Detection Routes
-    '/monitoring/patients/{patientId}/fall': {
-      post: {
-        summary: 'Record a fall event from frontend',
-        tags: ['Fall Detection'],
+    // Nurse Routes
+    '/nurse/me/patients': {
+      get: {
+        summary: 'Get patients assigned to the current nurse',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
-        parameters: [
-          {
-            in: 'path',
-            name: 'patientId',
-            schema: {
-              type: 'string',
-            },
-            required: true,
-            description: 'Patient ID',
-          },
-        ],
-        requestBody: {
-          required: false,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  details: {
-                    type: 'object',
-                    description: 'Additional details about the fall (optional)',
+        description: 'Retrieves all patients assigned to the currently logged-in nurse.',
+        responses: {
+          200: {
+            description: 'List of patients assigned to the nurse',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/User',
                   },
                 },
               },
             },
           },
-        },
-        responses: {
-          200: {
-            description: 'Fall recorded successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/FallEventResponse',
-                },
-              },
-            },
+          400: {
+            description: 'User is not a nurse',
           },
           401: {
             description: 'Not authenticated',
           },
-          404: {
-            description: 'Patient not found',
+          403: {
+            description: 'Not authorized (requires nurse role)',
           },
         },
       },
     },
-    '/monitoring/patients/{patientId}/reset': {
+    '/nurse/me/patients/{patientId}/assign': {
       post: {
-        summary: 'Reset a patient\'s fall status',
-        tags: ['Fall Detection'],
+        summary: 'Assign a patient to the current nurse',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
         parameters: [
           {
@@ -659,22 +630,28 @@ Protected routes are marked with a lock icon 🔒`,
               type: 'string',
             },
             required: true,
-            description: 'Patient ID',
+            description: 'Patient ID to assign',
           },
         ],
         responses: {
           200: {
-            description: 'Fall status reset successfully',
+            description: 'Patient assigned successfully',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/FallEventResponse',
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
                 },
               },
             },
           },
+          400: {
+            description: 'User is not a nurse or target user is not a patient',
+          },
           401: {
             description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires nurse role)',
           },
           404: {
             description: 'Patient not found',
@@ -682,32 +659,52 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
-    '/monitoring/falls/active': {
-      get: {
-        summary: 'Get all patients with active falls',
-        tags: ['Fall Detection'],
+    '/nurse/me/patients/{patientId}': {
+      delete: {
+        summary: 'Remove a patient from the current nurse',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'patientId',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Patient ID to remove',
+          },
+        ],
         responses: {
           200: {
-            description: 'List of patients with active falls',
+            description: 'Patient removed successfully',
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/ActiveFallsResponse',
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
                 },
               },
             },
           },
+          400: {
+            description: 'User is not a nurse or patient is not assigned to this nurse',
+          },
           401: {
             description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (requires nurse role)',
+          },
+          404: {
+            description: 'Nurse not found',
           },
         },
       },
     },
-    '/monitoring/nurses/{nurseId}/patients': {
+    '/nurse/{nurseId}/patients': {
       get: {
-        summary: 'Get patients assigned to a nurse',
-        tags: ['Fall Detection'],
+        summary: 'Get patients assigned to a specific nurse (admin only)',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
         parameters: [
           {
@@ -726,30 +723,22 @@ Protected routes are marked with a lock icon 🔒`,
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  properties: {
-                    success: {
-                      type: 'boolean',
-                    },
-                    count: {
-                      type: 'integer',
-                    },
-                    patients: {
-                      type: 'array',
-                      items: {
-                        $ref: '#/components/schemas/User',
-                      },
-                    },
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/User',
                   },
                 },
               },
             },
           },
+          400: {
+            description: 'User is not a nurse',
+          },
           401: {
             description: 'Not authenticated',
           },
           403: {
-            description: 'Not authorized (requires nurse or admin role)',
+            description: 'Not authorized (requires admin role)',
           },
           404: {
             description: 'Nurse not found',
@@ -757,10 +746,10 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
-    '/monitoring/nurses/{nurseId}/patients/{patientId}/assign': {
+    '/nurse/{nurseId}/patients/{patientId}/assign': {
       post: {
-        summary: 'Assign a patient to a nurse',
-        tags: ['Fall Detection'],
+        summary: 'Assign a patient to a specific nurse (admin only)',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
         parameters: [
           {
@@ -779,7 +768,7 @@ Protected routes are marked with a lock icon 🔒`,
               type: 'string',
             },
             required: true,
-            description: 'Patient ID',
+            description: 'Patient ID to assign',
           },
         ],
         responses: {
@@ -788,27 +777,19 @@ Protected routes are marked with a lock icon 🔒`,
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  properties: {
-                    success: {
-                      type: 'boolean',
-                    },
-                    message: {
-                      type: 'string',
-                    },
-                    nurse: {
-                      $ref: '#/components/schemas/User',
-                    },
-                  },
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
                 },
               },
             },
+          },
+          400: {
+            description: 'User is not a nurse or target user is not a patient',
           },
           401: {
             description: 'Not authenticated',
           },
           403: {
-            description: 'Not authorized (requires nurse or admin role)',
+            description: 'Not authorized (requires admin role)',
           },
           404: {
             description: 'Nurse or patient not found',
@@ -816,10 +797,10 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
-    '/monitoring/nurses/{nurseId}/patients/{patientId}': {
+    '/nurse/{nurseId}/patients/{patientId}': {
       delete: {
-        summary: 'Unassign a patient from a nurse',
-        tags: ['Fall Detection'],
+        summary: 'Remove a patient from a specific nurse (admin only)',
+        tags: ['Nurses'],
         security: [{ cookieAuth: [] }],
         parameters: [
           {
@@ -838,39 +819,31 @@ Protected routes are marked with a lock icon 🔒`,
               type: 'string',
             },
             required: true,
-            description: 'Patient ID',
+            description: 'Patient ID to remove',
           },
         ],
         responses: {
           200: {
-            description: 'Patient unassigned successfully',
+            description: 'Patient removed successfully',
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  properties: {
-                    success: {
-                      type: 'boolean',
-                    },
-                    message: {
-                      type: 'string',
-                    },
-                    nurse: {
-                      $ref: '#/components/schemas/User',
-                    },
-                  },
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
                 },
               },
             },
+          },
+          400: {
+            description: 'User is not a nurse or patient is not assigned to this nurse',
           },
           401: {
             description: 'Not authenticated',
           },
           403: {
-            description: 'Not authorized (requires nurse or admin role)',
+            description: 'Not authorized (requires admin role)',
           },
           404: {
-            description: 'Nurse or patient not found',
+            description: 'Nurse not found',
           },
         },
       },
