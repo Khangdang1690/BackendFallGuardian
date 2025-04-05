@@ -1,117 +1,165 @@
-# Express MongoDB Backend
+# FallGuardian Backend
 
-A Node.js backend application using Express.js and MongoDB with Google OAuth authentication.
+A Node.js backend for the FallGuardian system - a healthcare application that connects patients with nurses, featuring fall detection and communication tools.
+
+## Features
+
+- **User Management**: Patient, nurse, and admin roles
+- **Patient-Nurse Communication**: Secure message threads through forms
+- **Fall Detection**: Alert system for patient falls
+- **AI Integration**: Text generation and support
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB installed locally or a MongoDB Atlas connection string
-- npm or yarn
-- Google OAuth credentials (see Authentication section)
+- Node.js (v18 or higher)
+- MongoDB (local or MongoDB Atlas)
+- Google OAuth credentials
+- Docker (for containerized deployment)
 
-## Setup
+## Environment Variables
 
-1. Install dependencies:
+Create a `.env` file in the root directory with:
+
 ```bash
-npm install
-```
-
-2. Create a `.env` file in the root directory and add your environment variables:
-```
-# Server configuration
+# Server Configuration
 PORT=3000
+NODE_ENV=development  # Use 'production' in production environments
 
-# MongoDB connection string
-MONGODB_URI=mongodb://localhost:27017/myapp
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
 
-# Google OAuth credentials
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# Session
+SESSION_SECRET=your_session_secret_key_here
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
-
-# Session configuration
-SESSION_SECRET=your-strong-session-secret-key-here
-
-# Redirect URL after logout (optional)
 LOGOUT_REDIRECT_URL=/
 
-# SMS/Notifications configuration (Twilio - optional)
-TWILIO_ENABLED=false
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=your_twilio_phone
+# SMS/Notifications
+TELESIGN_CUSTOMER_ID=your_telesign_customer_id
+TELESIGN_API_KEY=your_telesign_api_key
+
+# AI API
+NEBIUS_API_KEY=your_nebius_api_key
+DEEPGRAM_API_KEY=your_deepgram_api_key
 ```
 
-3. Start the development server:
+## Local Development
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Run in development mode:
+   ```bash
+   npm run dev
+   ```
+
+## Docker Setup
+
+### Build and Run Locally with Docker
+
 ```bash
-npm run dev
+# Build the Docker image
+docker build -t fallguardian-backend .
+
+# Run the container
+docker run -p 3000:3000 --env-file .env fallguardian-backend
 ```
 
-The server will start on http://localhost:3000 (or the port specified in your .env file)
+### CI/CD with GitHub Actions
 
-## Authentication
+The project includes GitHub Actions workflows for:
+- Automated testing
+- Building and pushing Docker images
+- Deployment to Azure Container Instances
 
-This application uses Google OAuth 2.0 for authentication. To set it up:
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Go to "APIs & Services" > "Credentials"
-4. Click "Create Credentials" > "OAuth client ID"
-5. Configure the consent screen if prompted
-6. Select "Web application" as the application type
-7. Add "http://localhost:3000/api/auth/google/callback" to the Authorized redirect URIs
-8. Copy the Client ID and Client Secret to your .env file
-
-## Architecture Overview
-
-This backend forms part of a two-repository architecture:
-
-1. **Frontend (React)** 
-   - Implements fall detection using MediaPipe and WebRTC
-   - Handles camera access directly in the browser
-   - Provides patient and nurse interfaces
-
-2. **Backend (Node.js/Express)**
-   - Manages user accounts (patients, nurses, admins)
-   - Processes fall notifications from the frontend
-   - Provides API for the AI therapy service
-   - Handles SMS notifications to nurses
-
-### Fall Detection Architecture
-
-The fall detection system operates as follows:
-1. Patient opens the web app in their browser
-2. Frontend uses WebRTC to access the camera
-3. MediaPipe processes video frames to detect falls
-4. When a fall is detected, frontend calls the backend API
-5. Backend notifies assigned nurses via SMS
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
 
 ## API Documentation
 
-API documentation is available through Swagger UI at `/api-docs` when the server is running.
+Swagger API documentation is available at `/api-docs` when the server is running.
 
-## Project Structure
+## Data Models
 
+### User
+
+```javascript
+{
+  name: String,            // User's full name
+  email: String,           // Email address (unique)
+  googleId: String,        // Google OAuth ID
+  age: Number,             // User's age (0-120)
+  role: String,            // 'patient', 'nurse', or 'admin'
+  phoneNumber: String,     // Phone number (E.164 format)
+  nurseId: ObjectId,       // For patients: assigned nurse
+  assignedPatients: [ObjectId], // For nurses: list of patients
+  createdAt: Date          // Account creation timestamp
+}
 ```
-src/
-  ├── controllers/    # Route controllers
-  ├── docs/           # API documentation
-  ├── middleware/     # Express middleware
-  ├── models/         # MongoDB models
-  ├── python_services/# Python services for AI therapy
-  ├── routes/         # API routes
-  ├── services/       # Business logic services
-  ├── utils/          # Utility functions
-  ├── app.js          # Express application setup
-  └── server.js       # Main application entry point
+
+### Form
+
+```javascript
+{
+  title: String,           // Form title
+  patient: ObjectId,       // Patient reference
+  nurse: ObjectId,         // Nurse reference
+  status: String,          // 'pending', 'in-progress', 'resolved', 'cancelled'
+  resolved: Boolean,       // Whether form is resolved
+  resolvedBy: ObjectId,    // User who resolved the form
+  resolvedAt: Date,        // When the form was resolved
+  messages: [{
+    sender: ObjectId,      // Message sender
+    body: String,          // Message content
+    attachment: String,    // Optional attachment URL
+    createdAt: Date        // Message timestamp
+  }],
+  createdAt: Date,         // Form creation timestamp
+  updatedAt: Date          // Last update timestamp
+}
 ```
 
-## API Endpoints
+## Key API Endpoints
 
-- GET `/`: Welcome message
-- GET `/api-docs`: API documentation (Swagger UI)
-- GET `/api/users`: Get all users
-- GET `/api/users/me`: Get current user profile (requires authentication)
-- GET `/api/auth/google`: Login with Google
-- GET `/api/auth/dashboard`: Authentication dashboard (requires authentication)
-- GET `/api/auth/logout`: Logout current user 
+### Authentication
+- `GET /api/auth/google`: Google OAuth login
+- `GET /api/auth/dashboard`: Authentication dashboard
+- `GET /api/auth/logout`: Logout
+
+### Users
+- `GET /api/users`: Get all users
+- `GET /api/users/me`: Get current user profile
+- `PUT /api/users/me`: Update current user profile
+
+### Nurses
+- `GET /api/nurse/me/patients`: Get nurse's patients
+- `POST /api/nurse/me/patients/:patientId/assign`: Assign patient to nurse
+- `DELETE /api/nurse/me/patients/:patientId`: Remove patient from nurse
+
+### Patients
+- `GET /api/patient/me/nurse`: Get patient's nurse
+- `POST /api/patient/me/fall`: Alert nurse about patient fall
+
+### Forms
+- `POST /api/forms`: Create new form
+- `GET /api/forms/me`: Get user's forms
+- `GET /api/forms/:id`: Get specific form
+- `POST /api/forms/:id/messages`: Add message to form
+- `POST /api/forms/:id/resolve`: Mark form as resolved
+
+## Architecture
+
+The application follows a layered architecture:
+- **Models**: Database schemas (MongoDB/Mongoose)
+- **Services**: Business logic
+- **Controllers**: Request handling
+- **Routes**: API endpoint definitions
+- **Middleware**: Authentication, validation, error handling
+
+## License
+
+[MIT License](LICENSE) 
