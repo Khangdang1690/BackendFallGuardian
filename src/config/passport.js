@@ -15,8 +15,12 @@ passport.use(new GoogleStrategy({
       // Find user in database or create new user
       let user = await User.findOne({ googleId: profile.id });
       
+      // Track if the user is new for redirection purposes
+      let isNewUser = false;
+      
       if (!user) {
         console.log('Creating new user with Google ID:', profile.id);
+        isNewUser = true;
         user = await User.create({
           googleId: profile.id,
           name: profile.displayName,
@@ -25,6 +29,10 @@ passport.use(new GoogleStrategy({
           avatar: profile.photos[0].value
         });
       } 
+      
+      // Add isNewUser flag to the user object
+      user = user.toObject();
+      user.isNewUser = isNewUser;
       
       return done(null, user);
     } catch (error) {
