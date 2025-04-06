@@ -30,6 +30,7 @@ app.use(cors({
   origin: [
     "https://fallguardian-api.azurewebsites.net", 
     "http://localhost:3000",
+    "http://localhost:5173", // Frontend Vite development server
     process.env.FRONTEND_URL_DEV, // Frontend development URL
     process.env.FRONTEND_URL_PROD // Frontend deployed URL
   ],
