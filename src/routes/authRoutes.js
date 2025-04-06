@@ -43,8 +43,8 @@ router.get(
             
             console.log(`Session saved with ID: ${req.sessionID}`);
             
-            // Return user data and auth status
-            return res.status(200).json({
+            // Create auth data object
+            const authData = {
                 success: true,
                 message: 'Authentication successful',
                 user: {
@@ -55,7 +55,14 @@ router.get(
                     isNewUser: req.user.isNewUser || false
                 },
                 sessionId: req.sessionID
-            });
+            };
+            
+            // Redirect to frontend with auth data as URL parameter
+            const frontendUrl = process.env.FRONTEND_URL_DEV || 'http://localhost:5173';
+            const redirectUrl = `${frontendUrl}/auth/google/callback?data=${encodeURIComponent(JSON.stringify(authData))}`;
+            
+            console.log(`Redirecting to frontend: ${redirectUrl}`);
+            return res.redirect(redirectUrl);
         });
     }
 );
