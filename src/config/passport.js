@@ -28,6 +28,12 @@ passport.use(new GoogleStrategy({
         console.log('Found existing user with Google ID:', profile.id);
       }
       
+      // Store user in request.session for immediate access
+      if (request.session) {
+        request.session.userId = user.id;
+        request.session.lastLogin = new Date();
+      }
+      
       return done(null, user);
     } catch (error) {
       console.error('Google auth error:', error);

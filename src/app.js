@@ -32,14 +32,18 @@ app.use(session({
     mongoUrl: process.env.MONGODB_URI,
     ttl: 24 * 60 * 60, // Session TTL in seconds (1 day)
     autoRemove: 'native', // Automatically remove expired sessions
-    touchAfter: 10 * 60 // Update session every 10 minutes instead of every request
+    touchAfter: 10 * 60, // Update session every 10 minutes instead of every request
+    stringify: false, // Store as native MongoDB data
+    collectionName: 'sessions' // Explicit collection name
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
     httpOnly: true, // Helps protect against XSS attacks
     maxAge: 24 * 60 * 60 * 1000, // Cookie max age in milliseconds (1 day)
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Required for cross-site cookies
-  }
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-site cookies
+    path: '/'
+  },
+  name: 'fallguardian.sid' // Custom cookie name to avoid conflicts
 }));
 
 // Passport middleware - must be after session middleware
@@ -70,14 +74,31 @@ app.get('/api/debug/session', (req, res) => {
     isAuthenticated: req.isAuthenticated(),
     sessionID: req.sessionID,
     sessionContent: req.session,
+    cookies: req.cookies,
     user: req.user ? {
       id: req.user._id,
       name: req.user.name,
+      email: req.user.email,
       role: req.user.role
-    } : null
+    } : null,
+    headers: {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      userAgent: req.headers['user-agent']
+    }
   };
-  console.log('SESSION DEBUG:', sessionInfo);
+  console.log('SESSION DEBUG:', JSON.stringify(sessionInfo, null, 2));
   res.json(sessionInfo);
+});
+
+// Health check route - important for Azure
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
 });
 
 // Mount all API routes under /api

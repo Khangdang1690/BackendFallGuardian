@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
+const authController = require('../controllers/authController');
+const { isAuthenticated } = require('../middleware/authMiddleware');
 
 // @route   GET api/auth/google
 // @desc    Auth with Google
@@ -44,18 +46,7 @@ router.get('/google/callback',
 // @route   GET api/auth/dashboard
 // @desc    User dashboard after authentication
 // @access  Private
-router.get('/dashboard', ensureAuth, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Authentication successful',
-    user: {
-      id: req.user.id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role
-    }
-  });
-});
+router.get('/dashboard', isAuthenticated, authController.dashboard);
 
 // @route   GET api/auth/logout
 // @desc    Logout user
@@ -67,16 +58,13 @@ router.get('/logout', (req, res) => {
       console.error('Logout error:', err);
       return res.status(500).json({ message: 'Logout failed' });
     }
-    res.redirect('/');
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+      }
+      res.redirect('/');
+    });
   });
 });
-
-// Middleware to ensure user is authenticated
-function ensureAuth(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: 'Unauthorized - Please log in' });
-}
 
 module.exports = router; 

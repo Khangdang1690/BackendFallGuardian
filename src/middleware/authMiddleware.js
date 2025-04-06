@@ -5,10 +5,26 @@ const isAuthenticated = (req, res, next) => {
   console.log(`Auth check for ${req.originalUrl}, authenticated: ${req.isAuthenticated()}, sessionID: ${req.sessionID}`);
   console.log('Session data:', JSON.stringify(req.session).substring(0, 200) + '...');
   
-  // If already authenticated, proceed
-  if (req.isAuthenticated()) {
-    console.log('User authenticated, proceeding to next middleware');
+  // Check both Passport authentication and session data
+  if (req.isAuthenticated() && req.user) {
+    console.log('User authenticated via Passport, proceeding to next middleware');
     return next();
+  }
+  
+  // Fallback check - if we have userId in session but Passport failed
+  if (req.session && req.session.userId) {
+    console.log('Session contains userId but Passport auth failed. Attempting recovery...');
+    
+    // Force session save to ensure it's available for next request
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error in fallback auth:', err);
+      }
+      
+      // Redirect to dashboard with special flag
+      return res.redirect('/api/auth/dashboard?auth=recover&sid=' + req.sessionID);
+    });
+    return;
   }
   
   // Prevent redirect loops for Google auth routes
