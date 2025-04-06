@@ -33,14 +33,33 @@ class AuthController extends BaseController {
 
   // Dashboard - display auth success and user info
   dashboard = async (req, res) => {
+    // Ensure user exists either from passport or from session
+    const userData = req.user || {
+      id: req.session.userId,
+      name: req.session.userName,
+      email: req.session.userEmail,
+      role: req.session.userRole
+    };
+    
+    if (!userData.id) {
+      console.error('No user data available in dashboard route');
+      return res.status(401).json({ message: 'Authentication failed' });
+    }
+    
+    console.log(`Dashboard accessed by: ${userData.name}, ID: ${userData.id}, Session ID: ${req.sessionID}`);
+    
     res.json({
       success: true,
       message: 'Authentication successful',
       user: {
-        id: req.user.id,
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role
+      },
+      session: {
+        id: req.sessionID,
+        authenticated: req.isAuthenticated()
       }
     });
   };

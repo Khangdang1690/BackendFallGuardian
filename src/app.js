@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -15,35 +16,38 @@ app.set('trust proxy', 1);
 
 // Configure CORS to allow cookies/credentials
 app.use(cors({
-  origin: true, // Allow any origin or set to specific origin
-  credentials: true // Allow cookies to be sent with requests
+  origin: ["https://fallguardian-api.azurewebsites.net", "http://localhost:3000"],
+  credentials: true
 }));
 
 // Essential for cookie parsing
+app.use(cookieParser(process.env.SESSION_SECRET || 'keyboard cat'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session middleware
 app.use(session({
   secret: process.env.SESSION_SECRET || 'keyboard cat',
-  resave: false,
-  saveUninitialized: true, // Changed to true to ensure session is created right away
+  resave: true, // Changed to true to ensure session is saved
+  saveUninitialized: true, // Create session right away
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60, // Session TTL in seconds (1 day)
-    autoRemove: 'native', // Automatically remove expired sessions
-    touchAfter: 10 * 60, // Update session every 10 minutes instead of every request
-    stringify: false, // Store as native MongoDB data
-    collectionName: 'sessions' // Explicit collection name
+    ttl: 24 * 60 * 60,
+    autoRemove: 'native',
+    touchAfter: 10 * 60,
+    stringify: false,
+    collectionName: 'sessions'
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
-    httpOnly: true, // Helps protect against XSS attacks
-    maxAge: 24 * 60 * 60 * 1000, // Cookie max age in milliseconds (1 day)
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-site cookies
-    path: '/'
+    secure: false, // Important: set to false initially to debug
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'none', // Always use 'none' when in production
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' ? '.azurewebsites.net' : undefined
   },
-  name: 'fallguardian.sid' // Custom cookie name to avoid conflicts
+  name: 'fallguardian.sid',
+  proxy: true // Important for Azure
 }));
 
 // Passport middleware - must be after session middleware
