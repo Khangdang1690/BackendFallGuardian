@@ -3,6 +3,8 @@ const cors = require('cors');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const morgan = require('morgan');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -14,6 +16,15 @@ const app = express();
 // Trust proxy - important for Azure which uses proxies
 app.set('trust proxy', 1);
 
+// Security middleware
+app.use(helmet({ 
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false // Disable CSP temporarily if you have issues with swagger
+}));
+
+// HTTP request logger
+app.use(morgan("common"));
+
 // Configure CORS to allow cookies/credentials
 app.use(cors({
   origin: ["https://fallguardian-api.azurewebsites.net", "http://localhost:3000"],
@@ -23,32 +34,22 @@ app.use(cors({
 // Essential for cookie parsing
 app.use(cookieParser(process.env.SESSION_SECRET || 'keyboard cat'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "30mb" }));
 
 // Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'keyboard cat',
-  resave: true, // Changed to true to ensure session is saved
-  saveUninitialized: true, // Create session right away
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60,
-    autoRemove: 'native',
-    touchAfter: 10 * 60,
-    stringify: false,
-    collectionName: 'sessions'
-  }),
-  cookie: {
-    secure: false, // Important: set to false initially to debug
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'none', // Always use 'none' when in production
-    path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.azurewebsites.net' : undefined
-  },
-  name: 'fallguardian.sid',
-  proxy: true // Important for Azure
-}));
+app.use(
+  session({
+      secret: process.env.SESSION_SECRET || 'keyboard_cat',
+      resave: true,
+      saveUninitialized: true,
+      cookie: {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" && process.env.DISABLE_SECURE_COOKIE !== 'true',
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60 * 1000, //24h
+      }
+  })
+);
 
 // Passport middleware - must be after session middleware
 app.use(passport.initialize());
@@ -72,28 +73,21 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Express & MongoDB API' });
 });
 
-// Debug route to check session state directly
+// Debug session route
 app.get('/api/debug/session', (req, res) => {
-  const sessionInfo = {
-    isAuthenticated: req.isAuthenticated(),
-    sessionID: req.sessionID,
-    sessionContent: req.session,
-    cookies: req.cookies,
-    user: req.user ? {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role
-    } : null,
-    headers: {
-      host: req.headers.host,
-      origin: req.headers.origin,
-      referer: req.headers.referer,
-      userAgent: req.headers['user-agent']
-    }
-  };
-  console.log('SESSION DEBUG:', JSON.stringify(sessionInfo, null, 2));
-  res.json(sessionInfo);
+    const sessionInfo = {
+        isAuthenticated: req.isAuthenticated(),
+        sessionID: req.sessionID,
+        user: req.user ? {
+            id: req.user._id,
+            name: req.user.name,
+            role: req.user.role
+        } : null,
+        cookies: req.headers.cookie
+    };
+    
+    console.log('SESSION DEBUG:', sessionInfo);
+    res.json(sessionInfo);
 });
 
 // Health check route - important for Azure

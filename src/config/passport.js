@@ -6,8 +6,7 @@ const User = require('../models/User');
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    passReqToCallback: true
+    callbackURL: process.env.GOOGLE_CALLBACK_URL
   },
   async function(request, accessToken, refreshToken, profile, done) {
     try {
@@ -22,17 +21,10 @@ passport.use(new GoogleStrategy({
           googleId: profile.id,
           name: profile.displayName,
           email: profile.emails[0].value,
-          role: 'patient' // Default role
+          role: 'patient', // Default role
+          avatar: profile.photos[0].value
         });
-      } else {
-        console.log('Found existing user with Google ID:', profile.id);
-      }
-      
-      // Store user in request.session for immediate access
-      if (request.session) {
-        request.session.userId = user.id;
-        request.session.lastLogin = new Date();
-      }
+      } 
       
       return done(null, user);
     } catch (error) {
@@ -44,29 +36,25 @@ passport.use(new GoogleStrategy({
 
 // Serialize user into the session
 passport.serializeUser((user, done) => {
-  console.log('Serializing user:', user.id);
-  done(null, user.id);
+    console.log(`Serializing user to session: ${user._id}`);
+    done(null, user._id);
 });
 
 // Deserialize user from the session
 passport.deserializeUser(async (id, done) => {
-  console.log(`Deserializing user ID: ${id}, Session access time: ${new Date().toISOString()}`);
-  
-  try {
-    // Find the user by ID
-    const user = await User.findById(id);
-    
-    if (!user) {
-      console.error(`User not found during deserialization: ${id}`);
-      return done(null, false);
+    console.log(`Deserializing user from session ID: ${id}`);
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            console.error(`Error: User not found during deserialization: ${id}`);
+            return done(null, false);
+        }
+        console.log(`User successfully deserialized: ${user._id}`);
+        done(null, user);
+    } catch (error) {
+        console.error(`Deserialization error: ${error.message}`);
+        done(error, null);
     }
-    
-    console.log(`User successfully deserialized: ${user.name} (${user._id}), role: ${user.role}`);
-    return done(null, user);
-  } catch (error) {
-    console.error(`Deserialization error for ID ${id}:`, error);
-    return done(error, null);
-  }
 });
 
 module.exports = passport; 
