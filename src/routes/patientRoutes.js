@@ -3,6 +3,8 @@ const router = express.Router();
 const patientController = require('../controllers/patientController');
 const { isAuthenticated, isAdmin, isPatient } = require('../middleware/authMiddleware');
 
+
+router.post('/:id/fall', patientController.alertPatientFall);
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
 
@@ -13,6 +15,6 @@ router.post('/me/fall', isPatient, patientController.alertMyFall);
 
 // Admin routes to manage patients
 // Prefix: /patient/:id/...
-router.post('/:id/fall', isAdmin, patientController.alertPatientFall);
+// router.post('/:id/fall', isAdmin, patientController.alertPatientFall);
 
 module.exports = router; 
