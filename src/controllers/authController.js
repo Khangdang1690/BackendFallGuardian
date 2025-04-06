@@ -4,9 +4,9 @@ const { passport } = require('../config/passport');
 // Local Register
 const registerUser = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { name, email, password } = req.body;
 
-        if (!username || !email || !password) {
+        if (!name || !email || !password) {
             return res
                 .status(400)
                 .json({ message: "Please fill in all fields." });
@@ -14,7 +14,7 @@ const registerUser = async (req, res) => {
 
         // Check if user already exists
         let user = await User.findOne(
-            { $or: [{ email }, { username }] }
+            { $or: [{ email }, { name }] }
          );
 
         if (user) {
@@ -24,7 +24,7 @@ const registerUser = async (req, res) => {
         }
 
         // Create new user
-        user = await User.create({ username, email, password });
+        user = await User.create({ name, email, password });
 
         // Auto login after registration
         req.login(user, (err) => {
@@ -38,7 +38,7 @@ const registerUser = async (req, res) => {
                 message: "Registration successful.",
                 user: {
                     id: user._id,
-                    username: user.username,
+                    name: user.name,
                     email: user.email,
                 },
             });
@@ -68,7 +68,7 @@ const loginUser = (req, res, next) => {
                 message: "Login successful.",
                 user: {
                     id: user._id,
-                    username: user.username,
+                    name: user.name,
                     email: user.email,
                 },
             });
