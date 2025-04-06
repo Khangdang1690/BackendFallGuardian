@@ -27,7 +27,12 @@ app.use(morgan("common"));
 
 // Configure CORS to allow cookies/credentials
 app.use(cors({
-  origin: ["https://fallguardian-api.azurewebsites.net", "http://localhost:3000"],
+  origin: [
+    "https://fallguardian-api.azurewebsites.net", 
+    "http://localhost:3000",
+    process.env.FRONTEND_URL_DEV, // Frontend development URL
+    process.env.FRONTEND_URL_PROD // Frontend deployed URL
+  ],
   credentials: true
 }));
 
