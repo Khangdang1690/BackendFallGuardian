@@ -7,11 +7,22 @@ class AIService extends BaseService {
     // Pass null since this service doesn't directly use a MongoDB model
     super(null);
     
-    // Initialize the OpenAI client
-    this.client = new OpenAI({
-      baseURL: "https://api.studio.nebius.com/v1/",
-      apiKey: process.env.NEBIUS_API_KEY,
-    });
+    // Initialize the OpenAI client only if API key is available
+    if (process.env.NEBIUS_API_KEY) {
+      try {
+        this.client = new OpenAI({
+          baseURL: "https://api.studio.nebius.com/v1/",
+          apiKey: process.env.NEBIUS_API_KEY,
+        });
+        console.log("AI Service initialized successfully");
+      } catch (error) {
+        console.error("Failed to initialize AI service:", error);
+        this.client = null;
+      }
+    } else {
+      console.warn("NEBIUS_API_KEY not found. AI features will be disabled.");
+      this.client = null;
+    }
   }
 
   /**
@@ -24,6 +35,11 @@ class AIService extends BaseService {
    */
   async textToText(prompt, options = {}) {
     try {
+      // Check if client is initialized
+      if (!this.client) {
+        return "AI service is not available. Please check the API configuration.";
+      }
+      
       // Set default options
       const defaultOptions = {
         temperature: 0.6,
@@ -97,6 +113,14 @@ and understanding the relationship between patients and their caregivers.`;
    */
   async textToImage(prompt, options = {}) {
     try {
+      // Check if client is initialized
+      if (!this.client) {
+        return {
+          success: false,
+          message: "AI service is not available. Please check the API configuration."
+        };
+      }
+      
       // Set default options for image generation
       const defaultOptions = {
         model: "stability-ai/sdxl",

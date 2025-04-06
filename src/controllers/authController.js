@@ -8,10 +8,16 @@ class AuthController extends BaseController {
 
   // Handle Google OAuth callback
   handleGoogleCallback = async (req, res) => {
+    console.log('Google callback triggered, user:', req.user ? 'authenticated' : 'not authenticated');
+    
     if (!req.user) {
+      console.log('User authentication failed, redirecting to /api/auth/google');
       return res.redirect('/api/auth/google?error=authentication_failed');
     }
-    res.redirect('/api/auth/dashboard');
+    
+    console.log('User authenticated successfully, redirecting to dashboard');
+    // Add a parameter to prevent redirect loops
+    res.redirect('/api/auth/dashboard?source=google_callback');
   };
 
   // Dashboard - display auth success and user info

@@ -2,12 +2,20 @@
 
 // Check if user is authenticated
 const isAuthenticated = (req, res, next) => {
+  console.log(`Auth check for ${req.originalUrl}, authenticated: ${req.isAuthenticated()}`);
+  
+  // If already authenticated, proceed
   if (req.isAuthenticated()) {
     return next();
   }
   
+  // Prevent redirect loops for Google auth routes
+  if (req.path.includes('/auth/google')) {
+    return next();
+  }
+  
   // Check if request is API call or browser request
-  if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
+  if (req.xhr || req.headers.accept?.indexOf('json') > -1 || req.path.includes('/api/')) {
     return res.status(401).json({ message: 'Not authenticated' });
   } else {
     return res.redirect('/api/auth/google');
