@@ -76,32 +76,9 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Container Instances
-        uses: azure/aci-deploy@v1
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
         with:
+          app-name: fallguardian-api
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          dns-name-label: fallguardian-backend
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:latest
-          registry-login-server: docker.io
-          registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
-          name: fallguardian-backend
-          location: "eastus"
-          cpu: 0.5
-          memory: 1.0
-          restart-policy: Always
-          ports: 3000
-          environment-variables: |
-            NODE_ENV=production
-            PORT=3000
-          secure-environment-variables: |
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            GOOGLE_CALLBACK_URL=${{ secrets.GOOGLE_CALLBACK_URL }}
-            TELESIGN_CUSTOMER_ID=${{ secrets.TELESIGN_CUSTOMER_ID }}
-            TELESIGN_API_KEY=${{ secrets.TELESIGN_API_KEY }}
-            NEBIUS_API_KEY=${{ secrets.NEBIUS_API_KEY }}
-            DEEPGRAM_API_KEY=${{ secrets.DEEPGRAM_API_KEY }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/fallguardian-backend:latest
