@@ -9,7 +9,7 @@ class AuthController extends BaseController {
   // Handle Google OAuth callback
   handleGoogleCallback = async (req, res) => {
     if (!req.user) {
-      return res.redirect('/login?error=authentication_failed');
+      return res.redirect('/api/auth/google?error=authentication_failed');
     }
     res.redirect('/api/auth/dashboard');
   };
@@ -68,7 +68,7 @@ class AuthController extends BaseController {
         });
       } else {
         // If browser request, redirect
-        const redirectUrl = process.env.LOGOUT_REDIRECT_URL || '/';
+        const redirectUrl = process.env.LOGOUT_REDIRECT_URL || '/';  //Remember to add deployment url
         return res.redirect(redirectUrl);
       }
     } catch (error) {

@@ -10,7 +10,7 @@ const isAuthenticated = (req, res, next) => {
   if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.path.includes('/api/')) {
     return res.status(401).json({ message: 'Not authenticated' });
   } else {
-    return res.redirect('/login');
+    return res.redirect('/api/auth/google');
   }
 };
 
