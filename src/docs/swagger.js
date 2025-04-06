@@ -17,8 +17,17 @@ const apiDocumentation = {
 To test protected routes in this Swagger UI:
 1. First authenticate by visiting [/api/auth/google](http://localhost:3000/api/auth/google) in the same browser
 2. Once logged in, return to this Swagger UI
-3. The session cookie will be used for authenticated requests
+3. The session cookie (fallguardian.sid) will be used for authenticated requests
 4. You can then test protected endpoints like /users/me
+
+### Session Configuration
+This API uses cookie-based sessions with the following settings:
+- Cookie name: fallguardian.sid
+- SameSite: lax (to support OAuth redirects)
+- Session expiration: 24 hours
+
+### Troubleshooting
+If you're having authentication issues, visit the [/api/debug/session](/api/debug/session) endpoint to view your current session state.
 
 Protected routes are marked with a lock icon 🔒`,
     contact: {
@@ -37,7 +46,7 @@ Protected routes are marked with a lock icon 🔒`,
       cookieAuth: {
         type: 'apiKey',
         in: 'cookie',
-        name: 'connect.sid',
+        name: 'fallguardian.sid',
       }
     },
     schemas: {
@@ -593,6 +602,10 @@ Protected routes are marked with a lock icon 🔒`,
     {
       name: 'Forms',
       description: 'Form management',
+    },
+    {
+      name: 'Debug',
+      description: 'Debugging and troubleshooting',
     }
   ],
   paths: {
@@ -618,7 +631,7 @@ Protected routes are marked with a lock icon 🔒`,
       get: {
         summary: 'Google OAuth callback',
         tags: ['Authentication'],
-        description: 'Callback from Google OAuth. **Note: This endpoint is for internal use by the OAuth flow and cannot be tested directly in Swagger UI.**',
+        description: 'Callback from Google OAuth. This endpoint handles the Google authentication response, saves the session data, and redirects to the dashboard. **Note: This endpoint is for internal use by the OAuth flow and cannot be tested directly in Swagger UI.**',
         responses: {
           302: {
             description: 'Redirect to dashboard on success or login on failure',
@@ -631,7 +644,7 @@ Protected routes are marked with a lock icon 🔒`,
       get: {
         summary: 'Dashboard',
         tags: ['Authentication'],
-        description: 'Returns authentication success and user information',
+        description: 'Returns authentication success and user information. Requires a valid authenticated session.',
         security: [{ cookieAuth: [] }],
         responses: {
           200: {
@@ -651,7 +664,7 @@ Protected routes are marked with a lock icon 🔒`,
       },
     },
     '/auth/logout': {
-      get: {
+      post: {
         summary: 'Logout',
         tags: ['Authentication'],
         description: 'Logs out the current user by clearing the session and cookies.',
@@ -666,6 +679,9 @@ Protected routes are marked with a lock icon 🔒`,
                 },
               },
             },
+          },
+          401: {
+            description: 'Not authenticated',
           },
           500: {
             description: 'Logout failed',
@@ -693,6 +709,118 @@ Protected routes are marked with a lock icon 🔒`,
           },
         },
       },
+    },
+    '/auth/register': {
+      post: {
+        summary: 'Register a new user',
+        tags: ['Authentication'],
+        description: 'Creates a new user with local authentication.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'email', 'password'],
+                properties: {
+                  name: {
+                    type: 'string',
+                    description: 'User full name'
+                  },
+                  email: {
+                    type: 'string',
+                    format: 'email',
+                    description: 'User email address'
+                  },
+                  password: {
+                    type: 'string',
+                    format: 'password',
+                    description: 'User password'
+                  },
+                  role: {
+                    type: 'string',
+                    enum: ['patient', 'nurse', 'admin'],
+                    description: 'User role'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: {
+            description: 'User registered successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/User'
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Invalid registration data'
+          }
+        }
+      }
+    },
+    '/auth/login': {
+      post: {
+        summary: 'Login with email and password',
+        tags: ['Authentication'],
+        description: 'Authenticates a user with email and password.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: {
+                    type: 'string',
+                    format: 'email',
+                    description: 'User email address'
+                  },
+                  password: {
+                    type: 'string',
+                    format: 'password',
+                    description: 'User password'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Login successful',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: true
+                    },
+                    message: {
+                      type: 'string',
+                      example: 'Login successful'
+                    },
+                    user: {
+                      $ref: '#/components/schemas/User'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          401: {
+            description: 'Invalid credentials'
+          }
+        }
+      }
     },
     // User Routes
     '/users': {
