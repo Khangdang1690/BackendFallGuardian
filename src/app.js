@@ -32,14 +32,15 @@ app.use(session({
   saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60 // Session TTL (1 day)
+    ttl: 24 * 60 * 60, // Session TTL (1 day)
+    autoRemove: 'native',
+    touchAfter: 24 * 3600 // Time period in seconds between session updates
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
     maxAge: 24 * 60 * 60 * 1000, // Cookie max age (1 day)
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    httpOnly: true,
-    domain: undefined // Remove domain restriction entirely
+    httpOnly: true
   }
 }));
 

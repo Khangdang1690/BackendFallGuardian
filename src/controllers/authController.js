@@ -15,9 +15,20 @@ class AuthController extends BaseController {
       return res.redirect('/api/auth/google?error=authentication_failed');
     }
     
-    console.log('User authenticated successfully, redirecting to dashboard');
-    // Add a parameter to prevent redirect loops
-    res.redirect('/api/auth/dashboard?source=google_callback');
+    console.log('Session before save:', req.session);
+    
+    // Force session save and wait for it to complete before redirecting
+    req.session.save((err) => {
+      if (err) {
+        console.error('Final session save error:', err);
+        return res.status(500).send('Session save failed');
+      }
+      
+      console.log('User authenticated successfully, session saved, redirecting to dashboard');
+      console.log('Session ID after save:', req.sessionID);
+      // Add a parameter to prevent redirect loops
+      res.redirect('/api/auth/dashboard?source=google_callback');
+    });
   };
 
   // Dashboard - display auth success and user info

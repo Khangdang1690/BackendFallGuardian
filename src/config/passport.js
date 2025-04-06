@@ -25,13 +25,13 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    console.log('Deserializing user ID:', id);
+    console.log('Deserializing user ID:', id, 'Session ID:', require('crypto').randomBytes(4).toString('hex'));
     const user = await User.findById(id);
     if (!user) {
       console.error('User not found during deserialization:', id);
       return done(null, false);
     }
-    console.log('User found:', user._id);
+    console.log('User found:', user._id, 'roles:', user.role);
     done(null, user);
   } catch (error) {
     console.error('Deserialization error:', error);

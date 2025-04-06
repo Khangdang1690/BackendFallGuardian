@@ -9,15 +9,6 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 
 router.get('/google/callback', 
   passport.authenticate('google', { failureRedirect: '/api/auth/google?error=authentication_failed' }),
-  (req, res, next) => {
-    // Explicitly save the session before continuing
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-      }
-      next();
-    });
-  },
   authController.handleGoogleCallback
 );
 
