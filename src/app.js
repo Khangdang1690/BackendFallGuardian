@@ -26,22 +26,29 @@ app.use(express.static('public'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     ttl: 24 * 60 * 60 // Session TTL (1 day)
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
     maxAge: 24 * 60 * 60 * 1000, // Cookie max age (1 day)
-    sameSite: 'lax', // Helps with CSRF protection
-    httpOnly: true // Helps with XSS protection
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site cookies in production
+    httpOnly: true, // Helps with XSS protection
+    domain: process.env.NODE_ENV === 'production' ? '.azurewebsites.net' : undefined
   }
 }));
 
 // Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Debug middleware to log authentication status
+app.use((req, res, next) => {
+  console.log(`Request path: ${req.path}, Authenticated: ${req.isAuthenticated()}, User: ${req.user ? JSON.stringify(req.user._id) : 'none'}`);
+  next();
+});
 
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
