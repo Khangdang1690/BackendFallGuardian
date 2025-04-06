@@ -22,35 +22,34 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the public directory
-app.use(express.static('public'));
-
 // Session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Don't create session until something is stored
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60, // Session TTL (1 day)
-    autoRemove: 'native',
-    touchAfter: 24 * 3600 // Time period in seconds between session updates
+    ttl: 24 * 60 * 60 // Session TTL in seconds (1 day)
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
-    maxAge: 24 * 60 * 60 * 1000, // Cookie max age (1 day)
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    httpOnly: true
+    httpOnly: true, // Helps protect against XSS attacks
+    maxAge: 24 * 60 * 60 * 1000, // Cookie max age in milliseconds (1 day)
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Required for cross-site cookies
   }
 }));
 
-// Initialize Passport and restore authentication state from session
+// Passport middleware - must be after session middleware
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Debug middleware to log authentication status
 app.use((req, res, next) => {
-  console.log(`Request path: ${req.path}, Authenticated: ${req.isAuthenticated()}, User: ${req.user ? JSON.stringify(req.user._id) : 'none'}`);
+  // Simple authentication logger
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - isAuthenticated: ${req.isAuthenticated()}`);
+  if (req.isAuthenticated()) {
+    console.log(`User: ${req.user.name}, ID: ${req.user._id}`);
+  }
   next();
 });
 
