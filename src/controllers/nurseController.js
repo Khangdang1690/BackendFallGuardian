@@ -114,6 +114,16 @@ class NurseController extends BaseController {
       next(error);
     }
   };
+
+  // Get all patients in the system
+  getAllPatients = async (req, res, next) => {
+    try {
+      const patients = await this.service.getAllPatients();
+      res.json(patients);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 const nurseController = new NurseController();
@@ -126,5 +136,6 @@ module.exports = {
   bulkAssignPatientsToMe: nurseController.bulkAssignPatientsToMe,
   bulkAssignPatients: nurseController.bulkAssignPatients,
   removePatientFromMe: nurseController.removePatientFromMe,
-  unassignPatient: nurseController.unassignPatient
+  unassignPatient: nurseController.unassignPatient,
+  getAllPatients: nurseController.getAllPatients
 }; 

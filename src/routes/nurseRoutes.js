@@ -6,6 +6,9 @@ const { isAuthenticated, isNurse, isAdmin } = require('../middleware/authMiddlew
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
 
+// Route to get all users with role 'patient'
+router.get('/patients', isNurse, nurseController.getAllPatients);
+
 // Routes for nurses to manage their own patients
 // Prefix: /nurse/me/...
 router.get('/me/patients', isNurse, nurseController.getMyPatients);

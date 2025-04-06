@@ -1493,6 +1493,35 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
+    '/nurse/patients': {
+      get: {
+        summary: 'Get all patients',
+        tags: ['Nurse'],
+        description: 'Retrieves all users with the role "patient" from the system.',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of all patients',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/User',
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (nurse only)',
+          },
+        },
+      },
+    },
     // Patient Routes
     '/patient/me/nurse': {
       get: {

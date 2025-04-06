@@ -161,6 +161,20 @@ class NurseService extends BaseService {
       return this.handleError(error);
     }
   }
+
+  // Get all patients in the system
+  async getAllPatients() {
+    try {
+      // Find all users with 'patient' role
+      const patients = await this.model.find({ role: 'patient' })
+        .select('-__v')
+        .sort({ name: 1 }); // Sort by name alphabetically
+      
+      return patients;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
 }
 
 module.exports = new NurseService(); 
