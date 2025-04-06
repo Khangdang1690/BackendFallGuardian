@@ -1184,6 +1184,59 @@ Protected routes are marked with a lock icon 🔒`,
         },
       },
     },
+    '/nurse/me/patients/bulk-assign': {
+      post: {
+        summary: 'Assign multiple patients to the current nurse',
+        tags: ['Nurse'],
+        description: 'Assigns multiple patients to the currently logged-in nurse in a single request.',
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['patientIds'],
+                properties: {
+                  patientIds: {
+                    type: 'array',
+                    description: 'Array of patient IDs to assign',
+                    items: {
+                      type: 'string',
+                      description: 'Patient ID'
+                    }
+                  }
+                }
+              },
+              example: {
+                patientIds: ['60d5ec92fcf032e333a9cb13', '60d5ec92fcf032e333a9cb14']
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Patients assigned successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid request data or user is not a nurse',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          404: {
+            description: 'Nurse or patient not found',
+          },
+        },
+      },
+    },
     '/nurse/me/patients/{patientId}': {
       delete: {
         summary: 'Remove a patient from the current nurse',
@@ -1315,6 +1368,73 @@ Protected routes are marked with a lock icon 🔒`,
           },
           403: {
             description: 'Not authorized (requires admin role)',
+          },
+          404: {
+            description: 'Nurse or patient not found',
+          },
+        },
+      },
+    },
+    '/nurse/{nurseId}/patients/bulk-assign': {
+      post: {
+        summary: 'Assign multiple patients to a specific nurse (admin only)',
+        tags: ['Nurse'],
+        description: 'Allows admins to assign multiple patients to a specific nurse in a single request.',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'nurseId',
+            schema: {
+              type: 'string',
+            },
+            required: true,
+            description: 'Nurse ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['patientIds'],
+                properties: {
+                  patientIds: {
+                    type: 'array',
+                    description: 'Array of patient IDs to assign',
+                    items: {
+                      type: 'string',
+                      description: 'Patient ID'
+                    }
+                  }
+                }
+              },
+              example: {
+                patientIds: ['60d5ec92fcf032e333a9cb13', '60d5ec92fcf032e333a9cb14']
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Patients assigned successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PatientAssignmentResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid request data or user is not a nurse',
+          },
+          401: {
+            description: 'Not authenticated',
+          },
+          403: {
+            description: 'Not authorized (admin only)',
           },
           404: {
             description: 'Nurse or patient not found',

@@ -74,6 +74,46 @@ class NurseController extends BaseController {
       next(error);
     }
   };
+
+  // Bulk assign patients to current nurse
+  bulkAssignPatientsToMe = async (req, res, next) => {
+    try {
+      const nurseId = req.user.id;
+      const { patientIds } = req.body;
+      
+      if (!patientIds || !Array.isArray(patientIds) || patientIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'patientIds must be a non-empty array of patient IDs' 
+        });
+      }
+      
+      const updatedNurse = await this.service.bulkAssignPatients(nurseId, patientIds);
+      res.json(updatedNurse);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Bulk assign patients to any nurse (admin route)
+  bulkAssignPatients = async (req, res, next) => {
+    try {
+      const { nurseId } = req.params;
+      const { patientIds } = req.body;
+      
+      if (!patientIds || !Array.isArray(patientIds) || patientIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'patientIds must be a non-empty array of patient IDs' 
+        });
+      }
+      
+      const updatedNurse = await this.service.bulkAssignPatients(nurseId, patientIds);
+      res.json(updatedNurse);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 const nurseController = new NurseController();
@@ -83,6 +123,8 @@ module.exports = {
   getNursePatients: nurseController.getNursePatients,
   assignPatientToMe: nurseController.assignPatientToMe,
   assignPatient: nurseController.assignPatient,
+  bulkAssignPatientsToMe: nurseController.bulkAssignPatientsToMe,
+  bulkAssignPatients: nurseController.bulkAssignPatients,
   removePatientFromMe: nurseController.removePatientFromMe,
   unassignPatient: nurseController.unassignPatient
 }; 

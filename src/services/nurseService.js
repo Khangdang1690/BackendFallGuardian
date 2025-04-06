@@ -102,6 +102,65 @@ class NurseService extends BaseService {
       return this.handleError(error);
     }
   }
+
+  // Bulk assign multiple patients to a nurse
+  async bulkAssignPatients(nurseId, patientIds) {
+    try {
+      // Check if nurse exists and is actually a nurse
+      const nurse = await this.findById(nurseId);
+      if (!nurse) {
+        throw { status: 404, message: 'Nurse not found' };
+      }
+      
+      if (nurse.role !== 'nurse') {
+        throw { status: 400, message: 'User is not a nurse' };
+      }
+      
+      // Validate all patients exist and are patients
+      const patientsToAdd = [];
+      for (const patientId of patientIds) {
+        const patient = await this.findById(patientId);
+        if (!patient) {
+          throw { status: 404, message: `Patient not found with ID: ${patientId}` };
+        }
+        
+        if (patient.role !== 'patient') {
+          throw { status: 400, message: `User is not a patient: ${patientId}` };
+        }
+        
+        // Only add patients that aren't already assigned
+        if (!nurse.assignedPatients.includes(patientId)) {
+          patientsToAdd.push({
+            id: patientId,
+            record: patient
+          });
+        }
+      }
+      
+      // Add all valid patients to nurse's assigned patients list
+      if (patientsToAdd.length > 0) {
+        // Update the nurse
+        for (const patient of patientsToAdd) {
+          nurse.assignedPatients.push(patient.id);
+        }
+        await nurse.save();
+        
+        // Update all the patients with the nurseId
+        const updatePromises = patientsToAdd.map(patient => {
+          patient.record.nurseId = nurseId;
+          return patient.record.save();
+        });
+        
+        await Promise.all(updatePromises);
+      }
+      
+      // Populate and return the updated nurse
+      const updatedNurse = await this.findById(nurseId, { populate: 'assignedPatients' });
+      return updatedNurse;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
 }
 
 module.exports = new NurseService(); 
