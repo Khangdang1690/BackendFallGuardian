@@ -1,5 +1,5 @@
-const { User } =  require('../models/User');
-const { passport } = require('../config/passport');
+const User = require('../models/User');
+const passport = require('../config/passport');
 
 // Local Register
 const registerUser = async (req, res) => {

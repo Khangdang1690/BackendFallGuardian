@@ -1,6 +1,42 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const LocalStrategy = require('passport-local').Strategy;
 const User = require('../models/User');
+
+// Local Strategy for email/password authentication
+passport.use(new LocalStrategy(
+  {
+    usernameField: 'email',
+    passwordField: 'password'
+  },
+  async (email, password, done) => {
+    try {
+      console.log('Local auth attempt for email:', email);
+      
+      // Find the user by email
+      const user = await User.findOne({ email });
+      
+      // If user doesn't exist
+      if (!user) {
+        console.log('User not found with email:', email);
+        return done(null, false, { message: 'Incorrect email or password' });
+      }
+      
+      // Check if password is correct
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        console.log('Password mismatch for email:', email);
+        return done(null, false, { message: 'Incorrect email or password' });
+      }
+      
+      console.log('Local auth successful for user:', user._id);
+      return done(null, user);
+    } catch (error) {
+      console.error('Local auth error:', error);
+      return done(error);
+    }
+  }
+));
 
 // Google OAuth Strategy
 passport.use(new GoogleStrategy({
