@@ -19,14 +19,22 @@ passport.use(new GoogleStrategy({
 ));
 
 passport.serializeUser((user, done) => {
+  console.log('Serializing user:', user.id);
   done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
+    console.log('Deserializing user ID:', id);
     const user = await User.findById(id);
+    if (!user) {
+      console.error('User not found during deserialization:', id);
+      return done(null, false);
+    }
+    console.log('User found:', user._id);
     done(null, user);
   } catch (error) {
+    console.error('Deserialization error:', error);
     done(error, null);
   }
 });

@@ -10,6 +10,9 @@ const { swaggerUi, swaggerSpec, swaggerUiOptions } = require('./docs/swagger');
 
 const app = express();
 
+// Trust proxy - important for Azure which uses proxies
+app.set('trust proxy', 1);
+
 // Configure CORS to allow cookies/credentials
 app.use(cors({
   origin: true, // Allow any origin or set to specific origin
@@ -34,9 +37,9 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
     maxAge: 24 * 60 * 60 * 1000, // Cookie max age (1 day)
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site cookies in production
-    httpOnly: true, // Helps with XSS protection
-    domain: process.env.NODE_ENV === 'production' ? '.azurewebsites.net' : undefined
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    httpOnly: true,
+    domain: undefined // Remove domain restriction entirely
   }
 }));
 
