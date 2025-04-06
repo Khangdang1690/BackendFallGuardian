@@ -12,19 +12,31 @@ router.get('/google',
 // @route   GET api/auth/google/callback
 // @desc    Google auth callback
 // @access  Public
-router.get('/google/callback', 
+router.get('/google/callback',
   passport.authenticate('google', { 
-    failureRedirect: '/api/auth/google?error=authentication_failed' 
+    failureRedirect: '/api/auth/google?error=authentication_failed',
+    session: true // Ensure session is enabled
   }),
   (req, res) => {
-    // On successful authentication, save session and redirect
+    // Double-check user is in the request
+    if (!req.user) {
+      console.error('User missing from request after authentication');
+      return res.redirect('/api/auth/google?error=user_missing');
+    }
+    
+    console.log('User authenticated, ID:', req.user._id, 'Session ID:', req.sessionID);
+    
+    // Force session save and wait for it to complete before redirecting
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
-        return res.status(500).send('Authentication error');
+        return res.status(500).send('Session save failed');
       }
-      console.log('Google auth successful, session saved, redirecting to dashboard');
-      res.redirect('/api/auth/dashboard');
+      
+      console.log('Session successfully saved, redirecting to dashboard');
+      
+      // Redirect with session ID in query parameter for debugging
+      res.redirect(`/api/auth/dashboard?source=google_callback&sid=${req.sessionID}`);
     });
   }
 );

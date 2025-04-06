@@ -19,6 +19,7 @@ app.use(cors({
   credentials: true // Allow cookies to be sent with requests
 }));
 
+// Essential for cookie parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,10 +27,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'keyboard cat',
   resave: false,
-  saveUninitialized: false, // Don't create session until something is stored
+  saveUninitialized: true, // Changed to true to ensure session is created right away
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    ttl: 24 * 60 * 60 // Session TTL in seconds (1 day)
+    ttl: 24 * 60 * 60, // Session TTL in seconds (1 day)
+    autoRemove: 'native', // Automatically remove expired sessions
+    touchAfter: 10 * 60 // Update session every 10 minutes instead of every request
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production' && process.env.DISABLE_SECURE_COOKIE !== 'true',
@@ -59,6 +62,22 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOpti
 // Routes
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Express & MongoDB API' });
+});
+
+// Debug route to check session state directly
+app.get('/api/debug/session', (req, res) => {
+  const sessionInfo = {
+    isAuthenticated: req.isAuthenticated(),
+    sessionID: req.sessionID,
+    sessionContent: req.session,
+    user: req.user ? {
+      id: req.user._id,
+      name: req.user.name,
+      role: req.user.role
+    } : null
+  };
+  console.log('SESSION DEBUG:', sessionInfo);
+  res.json(sessionInfo);
 });
 
 // Mount all API routes under /api
