@@ -1,4 +1,4 @@
-# FallGuardian Backend
+# FallGuardian Backend 
 
 A Node.js backend for the FallGuardian system - a healthcare application that connects patients with nurses, featuring fall detection and communication tools.
 
